@@ -1,0 +1,29 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+        working-directory: web
+      - run: bun run build
+        working-directory: web
+      - name: Package (no web/ source, no dev files)
+        run: |
+          name="${GITHUB_REPOSITORY#*/}"
+          mkdir -p "dist/$name"
+          cp -r fxmanifest.lua client server config html "dist/$name/"
+          (cd dist && zip -r "../$name.zip" "$name")
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: '*.zip'
+          generate_release_notes: true
